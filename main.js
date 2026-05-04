@@ -16,10 +16,22 @@ const filterBtns = document.querySelectorAll('.filter-btn');
  */
 async function init() {
   setupEventListeners();
+  registerServiceWorker();
   await Promise.all([
     loadPrices(),
     loadNews()
   ]);
+}
+
+/**
+ * Register PWA Service Worker
+ */
+function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW registration failed:', err));
+    });
+  }
 }
 
 /**

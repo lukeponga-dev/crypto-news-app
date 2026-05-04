@@ -9,14 +9,20 @@ const PRICE_URL = `${BASE_URL}/pricemultifull`;
 
 // For a simple demo, we can use the API without a key for limited requests.
 // In a real app, you'd want to store this in an environment variable.
-const API_KEY = process.env.API_KEY; 
+const API_KEY = import.meta.env.VITE_API_KEY; 
 
 async function fetchData(url) {
   try {
+    const finalUrl = API_KEY ? `${url}${url.includes('?') ? '&' : '?'}api_key=${API_KEY}` : url;
     const headers = API_KEY ? { 'Authorization': `Apikey ${API_KEY}` } : {};
-    const response = await fetch(url, { headers });
-    if (!response.ok) throw new Error('Network response was not ok');
-    return await response.json();
+    
+    const response = await fetch(finalUrl, { headers });
+    
+    const data = await response.json();
+    if (!response.ok || (data && data.Response === 'Error')) {
+      return null;
+    }
+    return data;
   } catch (error) {
     console.error('Fetch error:', error);
     return null;
@@ -37,7 +43,7 @@ export const NewsAPI = {
     
     const data = await fetchData(cryptoCompareUrl);
     
-    // If CryptoCompare fails or returns error (due to missing API key), try RSS fallback
+    // If CryptoCompare fails or returns error, try RSS fallback
     if (!data || !data.Data || data.Data.length === 0) {
       console.log('CryptoCompare failed or returned no data, falling back to RSS...');
       return await this.getRSSNews(category);

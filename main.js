@@ -90,8 +90,13 @@ async function loadPrices() {
  */
 async function loadNews(category = 'ALL') {
   showLoading();
-  allNews = await NewsAPI.getLatestNews(category);
-  renderNews(allNews);
+  try {
+    allNews = await NewsAPI.getLatestNews(category);
+    renderNews(allNews);
+  } catch (error) {
+    console.error('Error in loadNews:', error);
+    renderNews([]);
+  }
 }
 
 /**
@@ -111,6 +116,11 @@ function renderNews(news) {
   // Hero section (first item)
   const heroItem = news[0];
   heroNews.style.display = 'block';
+  
+  const heroCategories = typeof heroItem.categories === 'string' ? heroItem.categories.split('|') : [];
+  const heroSourceImg = heroItem.source_info?.img || '';
+  const heroSource = heroItem.source || 'Unknown Source';
+
   heroNews.innerHTML = `
     <article class="hero-card" onclick="window.open('${heroItem.url}', '_blank')">
       <div class="hero-image-container">
@@ -119,12 +129,12 @@ function renderNews(news) {
       <div class="hero-overlay">
         <div class="hero-content">
           <span class="card-tag">Featured News</span>
-          <h2 class="hero-title">${heroItem.title}</h2>
-          <p class="hero-excerpt">${heroItem.body.substring(0, 150)}...</p>
+          <h2 class="hero-title">${heroItem.title || 'No Title'}</h2>
+          <p class="hero-excerpt">${(heroItem.body || '').substring(0, 150)}...</p>
           <div class="card-footer">
             <div class="source-info">
-              <img src="${heroItem.source_info.img}" alt="${heroItem.source}" width="24" height="24" style="border-radius: 50%" onerror="this.style.display='none'">
-              <span>${heroItem.source} • ${formatDate(heroItem.published_on)}</span>
+              <img src="${heroSourceImg}" alt="${heroSource}" width="24" height="24" style="border-radius: 50%" onerror="this.style.display='none'">
+              <span>${heroSource} • ${formatDate(heroItem.published_on)}</span>
             </div>
             <span class="read-more">Featured Article <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span>
           </div>
@@ -135,25 +145,31 @@ function renderNews(news) {
 
   // Grid section (remaining items)
   const gridItems = news.slice(1);
-  newsGrid.innerHTML = gridItems.map(item => `
-    <article class="news-card">
-      <img src="${item.imageurl}" alt="${item.title}" class="card-image" onerror="this.src='https://images.unsplash.com/photo-1621761191319-c6fb62004040?q=80&w=800&auto=format&fit=crop'">
-      <div class="card-content">
-        <span class="card-tag">${item.categories.split('|')[0] || 'General'}</span>
-        <h3 class="card-title">${item.title}</h3>
-        <p class="card-excerpt">${item.body}</p>
-        <div class="card-footer">
-          <div class="source-info">
-            <img src="${item.source_info.img}" alt="${item.source}" width="20" height="20" style="border-radius: 50%" onerror="this.style.display='none'">
-            <span>${item.source} • ${formatDate(item.published_on)}</span>
+  newsGrid.innerHTML = gridItems.map(item => {
+    const itemCategories = typeof item.categories === 'string' ? item.categories.split('|') : [];
+    const itemSourceImg = item.source_info?.img || '';
+    const itemSource = item.source || 'Unknown Source';
+    
+    return `
+      <article class="news-card">
+        <img src="${item.imageurl}" alt="${item.title}" class="card-image" onerror="this.src='https://images.unsplash.com/photo-1621761191319-c6fb62004040?q=80&w=800&auto=format&fit=crop'">
+        <div class="card-content">
+          <span class="card-tag">${itemCategories[0] || 'General'}</span>
+          <h3 class="card-title">${item.title || 'No Title'}</h3>
+          <p class="card-excerpt">${item.body || ''}</p>
+          <div class="card-footer">
+            <div class="source-info">
+              <img src="${itemSourceImg}" alt="${itemSource}" width="20" height="20" style="border-radius: 50%" onerror="this.style.display='none'">
+              <span>${itemSource} • ${formatDate(item.published_on)}</span>
+            </div>
+            <a href="${item.url}" target="_blank" class="read-more">
+              Read <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+            </a>
           </div>
-          <a href="${item.url}" target="_blank" class="read-more">
-            Read <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
-          </a>
         </div>
-      </div>
-    </article>
-  `).join('');
+      </article>
+    `;
+  }).join('');
 }
 
 /**

@@ -9,7 +9,7 @@ const PRICE_URL = `${BASE_URL}/pricemultifull`;
 
 // For a simple demo, we can use the API without a key for limited requests.
 // In a real app, you'd want to store this in an environment variable.
-const API_KEY = ''; 
+const API_KEY = process.env.API_KEY; 
 
 async function fetchData(url) {
   try {

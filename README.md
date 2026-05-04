@@ -43,7 +43,13 @@ CryptoPulse is a premium, high-performance web application designed for cryptocu
    npm install
    ```
 
-3. Start the development server:
+3. Configure environment variables:
+   Create a `.env` file in the root directory and add your CryptoCompare API key:
+   ```env
+   VITE_API_KEY=your_api_key_here
+   ```
+
+4. Start the development server:
    ```bash
    npm run dev
    ```

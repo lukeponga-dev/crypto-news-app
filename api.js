@@ -29,25 +29,72 @@ export const NewsAPI = {
    * @param {string} category Optional category filter
    */
   async getLatestNews(category = 'ALL') {
-    let url = NEWS_URL;
+    // Try CryptoCompare first
+    let cryptoCompareUrl = NEWS_URL;
     if (category !== 'ALL') {
-      url += `&categories=${category.toLowerCase()}`;
+      cryptoCompareUrl += `&categories=${category.toLowerCase()}`;
     }
     
-    const data = await fetchData(url);
-    return (data && Array.isArray(data.Data)) ? data.Data : [];
+    const data = await fetchData(cryptoCompareUrl);
+    
+    // If CryptoCompare fails or returns error (due to missing API key), try RSS fallback
+    if (!data || !data.Data || data.Data.length === 0) {
+      console.log('CryptoCompare failed or returned no data, falling back to RSS...');
+      return await this.getRSSNews(category);
+    }
+    
+    return data.Data;
   },
 
   /**
-   * Search news by query (Client side filtering for simplicity or use API search if available)
-   * CryptoCompare doesn't have a direct "search" in the news v2 endpoint, so we filter locally
+   * Fetch news from RSS feeds as a fallback
+   */
+  async getRSSNews(category = 'ALL') {
+    const feeds = {
+      'ALL': 'https://cointelegraph.com/rss',
+      'BITCOIN': 'https://cointelegraph.com/rss/tag/bitcoin',
+      'ETHEREUM': 'https://cointelegraph.com/rss/tag/ethereum',
+      'ALTCOIN': 'https://cointelegraph.com/rss/tag/altcoin',
+      'BLOCKCHAIN': 'https://cointelegraph.com/rss/tag/blockchain',
+      'REGULATION': 'https://cointelegraph.com/rss/tag/regulation'
+    };
+
+    const rssUrl = feeds[category] || feeds['ALL'];
+    const proxyUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+    
+    try {
+      const response = await fetch(proxyUrl);
+      const data = await response.json();
+      
+      if (data.status === 'ok') {
+        return data.items.map(item => ({
+          id: item.guid,
+          imageurl: item.thumbnail || item.enclosure?.link || 'https://images.unsplash.com/photo-1621761191319-c6fb62004040?q=80&w=800&auto=format&fit=crop',
+          title: item.title,
+          body: item.description.replace(/<[^>]*>/g, '').substring(0, 200) + '...',
+          categories: item.categories ? item.categories.join('|') : category,
+          source: data.feed.title || 'Crypto News',
+          source_info: { img: data.feed.image || '' },
+          published_on: Math.floor(new Date(item.pubDate).getTime() / 1000),
+          url: item.link
+        }));
+      }
+    } catch (error) {
+      console.error('RSS Fetch error:', error);
+    }
+    
+    return [];
+  },
+
+  /**
+   * Search news by query
    */
   filterNews(news, query) {
     if (!query) return news;
     const q = query.toLowerCase();
     return news.filter(item => 
-      item.title.toLowerCase().includes(q) || 
-      item.body.toLowerCase().includes(q)
+      (item.title && item.title.toLowerCase().includes(q)) || 
+      (item.body && item.body.toLowerCase().includes(q))
     );
   }
 };

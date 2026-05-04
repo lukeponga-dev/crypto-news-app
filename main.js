@@ -6,6 +6,7 @@ let currentCategory = 'ALL';
 
 // DOM Elements
 const newsGrid = document.getElementById('news-grid');
+const heroNews = document.getElementById('hero-news');
 const priceTicker = document.getElementById('price-ticker');
 const searchInput = document.getElementById('news-search');
 const refreshBtn = document.getElementById('refresh-btn');
@@ -103,10 +104,38 @@ function renderNews(news) {
         <p>No news found matching your criteria.</p>
       </div>
     `;
+    heroNews.style.display = 'none';
     return;
   }
 
-  newsGrid.innerHTML = news.map(item => `
+  // Hero section (first item)
+  const heroItem = news[0];
+  heroNews.style.display = 'block';
+  heroNews.innerHTML = `
+    <article class="hero-card" onclick="window.open('${heroItem.url}', '_blank')">
+      <div class="hero-image-container">
+        <img src="${heroItem.imageurl}" alt="${heroItem.title}" class="hero-image" onerror="this.src='https://images.unsplash.com/photo-1621761191319-c6fb62004040?q=80&w=1200&auto=format&fit=crop'">
+      </div>
+      <div class="hero-overlay">
+        <div class="hero-content">
+          <span class="card-tag">Featured News</span>
+          <h2 class="hero-title">${heroItem.title}</h2>
+          <p class="hero-excerpt">${heroItem.body.substring(0, 150)}...</p>
+          <div class="card-footer">
+            <div class="source-info">
+              <img src="${heroItem.source_info.img}" alt="${heroItem.source}" width="24" height="24" style="border-radius: 50%" onerror="this.style.display='none'">
+              <span>${heroItem.source} • ${formatDate(heroItem.published_on)}</span>
+            </div>
+            <span class="read-more">Featured Article <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></span>
+          </div>
+        </div>
+      </div>
+    </article>
+  `;
+
+  // Grid section (remaining items)
+  const gridItems = news.slice(1);
+  newsGrid.innerHTML = gridItems.map(item => `
     <article class="news-card">
       <img src="${item.imageurl}" alt="${item.title}" class="card-image" onerror="this.src='https://images.unsplash.com/photo-1621761191319-c6fb62004040?q=80&w=800&auto=format&fit=crop'">
       <div class="card-content">
@@ -131,12 +160,18 @@ function renderNews(news) {
  * Show loading state
  */
 function showLoading() {
-  newsGrid.innerHTML = `
-    <div class="loading-state">
-      <div class="spinner"></div>
-      <p>Fetching the latest crypto pulse...</p>
-    </div>
+  heroNews.innerHTML = `
+    <div class="skeleton hero-card" style="height: 450px;"></div>
   `;
+  
+  newsGrid.innerHTML = Array(6).fill(0).map(() => `
+    <div class="card-skeleton">
+      <div class="skeleton skeleton-img"></div>
+      <div class="skeleton skeleton-title"></div>
+      <div class="skeleton skeleton-text"></div>
+      <div class="skeleton skeleton-text short"></div>
+    </div>
+  `).join('');
 }
 
 /**
